@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Inject services to IoC container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 // Inject sqlite3 database service
 builder.Services.AddDbContext<MusiCloudDbContext>(options =>
