@@ -2,10 +2,10 @@ namespace MusiCloud.Models;
 
 public class Music : ModelBase
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
     public Guid AlbumId { get; set; }
     public Album Album { get; set; } = null!;
-    public string? Name { get; set; }
+    public string? Title { get; set; }
     public Metadata? Metadata { get; set; }
     public ICollection<Artist> Artists { get; } = [];
 }
