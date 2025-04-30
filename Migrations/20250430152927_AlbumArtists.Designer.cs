@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MusiCloud.Data;
 
@@ -10,9 +11,11 @@ using MusiCloud.Data;
 namespace MusiCloud.Migrations
 {
     [DbContext(typeof(MusiCloudDbContext))]
-    partial class MusiCloudDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250430152927_AlbumArtists")]
+    partial class AlbumArtists
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
@@ -104,6 +107,9 @@ namespace MusiCloud.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("MusicId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .HasColumnType("TEXT");
 
@@ -111,6 +117,8 @@ namespace MusiCloud.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MusicId");
 
                     b.ToTable("Artists");
                 });
@@ -187,39 +195,6 @@ namespace MusiCloud.Migrations
                     b.ToTable("Musics");
                 });
 
-            modelBuilder.Entity("MusicArtist", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("ArtistId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreateTime")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("DeleteTime")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid>("MusicId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdateTime")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ArtistId");
-
-                    b.HasIndex("MusicId");
-
-                    b.ToTable("MusicArtists");
-                });
-
             modelBuilder.Entity("AlbumArtist", b =>
                 {
                     b.HasOne("MusiCloud.Models.Album", "Album")
@@ -237,6 +212,13 @@ namespace MusiCloud.Migrations
                     b.Navigation("Album");
 
                     b.Navigation("Artist");
+                });
+
+            modelBuilder.Entity("MusiCloud.Models.Artist", b =>
+                {
+                    b.HasOne("MusiCloud.Models.Music", null)
+                        .WithMany("Artists")
+                        .HasForeignKey("MusicId");
                 });
 
             modelBuilder.Entity("MusiCloud.Models.Metadata", b =>
@@ -261,25 +243,6 @@ namespace MusiCloud.Migrations
                     b.Navigation("Album");
                 });
 
-            modelBuilder.Entity("MusicArtist", b =>
-                {
-                    b.HasOne("MusiCloud.Models.Artist", "Artist")
-                        .WithMany("MusicArtists")
-                        .HasForeignKey("ArtistId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MusiCloud.Models.Music", "Music")
-                        .WithMany("MusicArtists")
-                        .HasForeignKey("MusicId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Artist");
-
-                    b.Navigation("Music");
-                });
-
             modelBuilder.Entity("MusiCloud.Models.Album", b =>
                 {
                     b.Navigation("AlbumArtists");
@@ -290,15 +253,13 @@ namespace MusiCloud.Migrations
             modelBuilder.Entity("MusiCloud.Models.Artist", b =>
                 {
                     b.Navigation("AlbumArtists");
-
-                    b.Navigation("MusicArtists");
                 });
 
             modelBuilder.Entity("MusiCloud.Models.Music", b =>
                 {
-                    b.Navigation("Metadata");
+                    b.Navigation("Artists");
 
-                    b.Navigation("MusicArtists");
+                    b.Navigation("Metadata");
                 });
 #pragma warning restore 612, 618
         }

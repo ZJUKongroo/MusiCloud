@@ -11,19 +11,33 @@ public class MusicService(MusiCloudDbContext context) : IMusicService
     public async Task<IEnumerable<Music>> GetMusicsAsync()
     {
         return await _context.Musics!
-            .OrderBy(x => x.UpdateTime)
+            .Where(m => !m.IsDeleted)
+            .Include(m => m.Metadata)
+            .Include(m => m.Album)
+                .ThenInclude(a => a.AlbumArtists)
+                    .ThenInclude(aa => aa.Artist)
+            .Include(m => m.MusicArtists)
+                .ThenInclude(ma => ma.Artist)
+            .AsSplitQuery()  // 优化性能，分割复杂查询
+            .OrderBy(m => m.Title)
             .ToListAsync();
     }
 
-    public async Task<Music> GetMusicAsync(Guid musicId)
+    public async Task<Music?> GetMusicAsync(Guid musicId)
     {
         if (musicId == Guid.Empty)
             throw new ArgumentNullException(nameof(musicId));
 
         return await _context.Musics!
-            .Where(x => x.Id == musicId)
-            .OrderBy(x => x.UpdateTime)
-            .FirstOrDefaultAsync() ?? throw new NullReferenceException(nameof(musicId));
+            .Where(m => m.Id == musicId && !m.IsDeleted)
+            .Include(m => m.Metadata)
+            .Include(m => m.Album)
+                .ThenInclude(a => a.AlbumArtists)
+                    .ThenInclude(aa => aa.Artist)
+            .Include(m => m.MusicArtists)
+                .ThenInclude(ma => ma.Artist)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync();
     }
 
     public async Task<bool> SaveAsync()

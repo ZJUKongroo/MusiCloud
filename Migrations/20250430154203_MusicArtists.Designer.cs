@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MusiCloud.Data;
 
@@ -10,9 +11,11 @@ using MusiCloud.Data;
 namespace MusiCloud.Migrations
 {
     [DbContext(typeof(MusiCloudDbContext))]
-    partial class MusiCloudDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250430154203_MusicArtists")]
+    partial class MusicArtists
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");

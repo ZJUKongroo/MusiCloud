@@ -7,5 +7,5 @@ public class Music : ModelBase
     public Album Album { get; set; } = null!;
     public string? Title { get; set; }
     public Metadata? Metadata { get; set; }
-    public ICollection<Artist> Artists { get; } = [];
+    public ICollection<MusicArtist> MusicArtists { get; } = [];
 }

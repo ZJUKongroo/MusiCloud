@@ -16,13 +16,17 @@ builder.Services.AddDbContext<MusiCloudDbContext>(options =>
         ?? throw new NullReferenceException("Database ConnectionString Not Found!"))
 );
 
-builder.Services.AddHostedService<MusiCloud.Services.FileManagementService>();
+// Inject MusiCloud service
+builder.Services.AddScoped<IMusicService, MusicService>();
+
+builder.Services.AddScoped<IFileProcessService, FileProcessService>();
+
+builder.Services.AddHostedService<FileWatchService>();
 
 // Inject OpenApi service
 builder.Services.AddOpenApi();
 
-// Inject MusiCloud service
-builder.Services.AddScoped<IMusicService, MusicService>();
+
 
 var app = builder.Build();
 

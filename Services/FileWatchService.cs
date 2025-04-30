@@ -2,23 +2,18 @@ namespace MusiCloud.Services
 {
     public class FileWatchService(IServiceProvider serviceProvider,
                                ILogger<FileWatchService> logger,
-                               IConfiguration configuration,FileProcessService fileProcessService) : IFileWatchService
+                               IConfiguration configuration): IFileWatchService
     {
         private readonly IServiceProvider _serviceProvider = serviceProvider;
         private readonly ILogger<FileWatchService> _logger = logger;
         private FileSystemWatcher? _watcher;
         private readonly string _musicFolder = configuration["MusicFolder"] ?? Path.Combine(AppContext.BaseDirectory, "MusicFiles");
     
-        private readonly FileProcessService _fileProcessService = fileProcessService;
-        public async Task StartAsync(CancellationToken cancellationToken)
-        {
-            // 确保目录存在
+        public async Task StartAsync(CancellationToken cancellationToken){
             Directory.CreateDirectory(_musicFolder);
 
-            // 初始扫描文件
             await ScanMusicFilesAsync();
 
-            // 设置文件监控
             _watcher = new FileSystemWatcher(_musicFolder)
             {
                 IncludeSubdirectories = true,
@@ -50,22 +45,29 @@ namespace MusiCloud.Services
             if (!IsMusicFile(filePath)) return;
 
             var fileInfo = new FileInfo(filePath);
+            using var scope = _serviceProvider.CreateScope();
+            var _IFileProcessService = scope.ServiceProvider.GetRequiredService<IFileProcessService>();
+
             if (!fileInfo.Exists)
             {
+
                 // 文件被删除
-                await _fileProcessService.handleFileDeleted(filePath);
+                await _IFileProcessService.handleFileDeleted(filePath);
                 return;
             }
 
-            await _fileProcessService.handleFileCreated(filePath);
+            await _IFileProcessService.handleFileCreated(filePath);
             _logger.LogInformation("已更新数据库中的文件: {FilePath}", filePath);
         }
 
         private async Task ProcessFileRenameAsync(string oldPath, string newPath)
         {
-            if (!IsMusicFile(newPath)) await _fileProcessService.handleFileDeleted(oldPath);
+            using var scope = _serviceProvider.CreateScope();
+            var _IFileProcessService = scope.ServiceProvider.GetRequiredService<IFileProcessService>();
 
-            await _fileProcessService!.handleFileRenamed(oldPath, newPath);
+            if (!IsMusicFile(newPath)) await _IFileProcessService.handleFileDeleted(oldPath);
+
+            await _IFileProcessService!.handleFileRenamed(oldPath, newPath);
         }
         private async Task ScanMusicFilesAsync()
         {
@@ -76,13 +78,13 @@ namespace MusiCloud.Services
 
             int count = 0;
             using var scope = _serviceProvider.CreateScope();
-            var _fileProcessService = scope.ServiceProvider.GetRequiredService<FileProcessService>();
+            var _IFileProcessService = scope.ServiceProvider.GetRequiredService<IFileProcessService>();
             
             foreach (var filePath in files)
             {
                 if(IsMusicFile(filePath))
                 {
-                    await _fileProcessService.handleFile(filePath);
+                    await _IFileProcessService.handleFile(filePath);
                 }
                 count++;  
             }

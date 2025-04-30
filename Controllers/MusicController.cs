@@ -16,9 +16,39 @@ public class MusicController(IMusicService musicService, IMapper mapper, ILogger
     [HttpGet]
     public async Task<ActionResult<IEnumerable<MusicDto>>> GetMusics()
     {
-        var musics = await _musicService.GetMusicsAsync();
+        try
+        {
+            var musics = await _musicService.GetMusicsAsync();
+            var musicDtos = _mapper.Map<IEnumerable<MusicDto>>(musics);
+            return Ok(musicDtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取音乐列表时出错");
+            return StatusCode(500, "获取音乐列表时发生内部错误");
+        }
+    }
 
-        var musicDtos = _mapper.Map<IEnumerable<MusicDto>>(musics);
-        return Ok(musicDtos);
+    [HttpGet("{id}")]
+    public async Task<ActionResult<MusicDto>> GetMusic(Guid id)
+    {
+        try
+        {
+            var music = await _musicService.GetMusicAsync(id);
+            if (music == null)
+                return NotFound();
+
+            var musicDto = _mapper.Map<MusicDto>(music);
+            return Ok(musicDto);
+        }
+        catch (ArgumentNullException)
+        {
+            return BadRequest("无效的音乐ID");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取音乐详情时出错 ID: {Id}", id);
+            return StatusCode(500, "获取音乐详情时发生内部错误");
+        }
     }
 }

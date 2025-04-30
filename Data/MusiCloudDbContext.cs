@@ -9,6 +9,8 @@ public class MusiCloudDbContext(DbContextOptions<MusiCloudDbContext> options) : 
     public DbSet<Artist>? Artists { get; set; }
     public DbSet<Metadata>? Metadatas { get; set; }
     public DbSet<Music>? Musics { get; set; }
+    public DbSet<AlbumArtist>? AlbumArtists { get; set; }
+    public DbSet<MusicArtist>? MusicArtists { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -19,6 +21,8 @@ public class MusiCloudDbContext(DbContextOptions<MusiCloudDbContext> options) : 
         modelBuilder.Entity<Metadata>()
             .HasQueryFilter(p => !p.IsDeleted);
         modelBuilder.Entity<Music>()
+            .HasQueryFilter(p => !p.IsDeleted);
+        modelBuilder.Entity<AlbumArtist>()
             .HasQueryFilter(p => !p.IsDeleted);
     }
 }
