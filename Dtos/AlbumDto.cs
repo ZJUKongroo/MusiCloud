@@ -7,5 +7,4 @@ public class AlbumDto
     public string? Description { get; set; }
     public string[] Genre { get; set; } = [];
     public string? CoverPath { get; set; }
-    public List<ArtistDto> Artists { get; set; } = [];
 }

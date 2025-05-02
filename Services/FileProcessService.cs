@@ -34,14 +34,16 @@ namespace MusiCloud.Services
         */
         private static string GetExtByMineType(string mimeType)
         {
-            return mimeType.Split('/').Last() switch
+            return mimeType.ToLowerInvariant() switch
             {
-                "audio/mpeg" => ".mp3",
-                "audio/wav" => ".wav",
-                "audio/flac" => ".flac",
-                "audio/ogg" => ".ogg",
-                "audio/aac" => ".aac",
-                _ => ".mp3"
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/gif" => ".gif",
+            "image/bmp" => ".bmp",
+            "image/tiff" => ".tiff",
+            "image/webp" => ".webp",
+            "image/svg+xml" => ".svg",
+            _ => ".jpg"  // Default to jpg for unknown image types
             };
         }
 
@@ -273,6 +275,7 @@ namespace MusiCloud.Services
                 Title = tagFile.Tag.Title,
                 AlbumId = album.Id,
                 Metadata = metadata,
+                Track = tagFile.Tag.Track
             };
 
             metadata.Music = music;

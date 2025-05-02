@@ -5,7 +5,7 @@
 namespace MusiCloud.Migrations
 {
     /// <inheritdoc />
-    public partial class addfilehash : Migration
+    public partial class AddFileHash : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

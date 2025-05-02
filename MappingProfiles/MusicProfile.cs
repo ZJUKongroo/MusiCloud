@@ -8,20 +8,33 @@ public class MusicProfile : Profile
 {
     public MusicProfile()
     {
-        // 艺术家映射
+        CreateMap<Artist, ArtistWithAlbumDto>();
+
         CreateMap<Artist, ArtistDto>();
         
-        // 元数据映射
         CreateMap<Metadata, MetadataDto>();
+
+        CreateMap<Album, AlbumDto>();
         
-        // 专辑映射 - 包括艺术家集合的转换
-        CreateMap<Album, AlbumDto>()
+        CreateMap<Album, AlbumWithMusicsArtistsDto>()
             .ForMember(dest => dest.Artists, opt => opt.MapFrom(src => 
-                src.AlbumArtists.Select(aa => aa.Artist)));
-        
-        // 音乐映射 - 包括艺术家集合的转换
-        CreateMap<Music, MusicDto>()
+                src.AlbumArtists.Select(aa => aa.Artist)))
+            .ForMember(dest=>dest.Musics, opt => opt.MapFrom(src => 
+                src.Musics.ToList()));
+
+        CreateMap<Music, MusicDto>();
+
+        CreateMap<Music, MusicWithAlbumArtistDto>()
             .ForMember(dest => dest.Artists, opt => opt.MapFrom(src => 
                 src.MusicArtists.Select(ma => ma.Artist)));
+
+        CreateMap<Music, MusicWithArtistDto>()
+            .ForMember(dest => dest.Artists, opt => opt.MapFrom(src => 
+                src.MusicArtists.Select(ma => ma.Artist)));
+
+        CreateMap<SearchResult, SearchResultDto>()
+            .ForMember(dest => dest.Musics, opt => opt.MapFrom(src => src.Musics))
+            .ForMember(dest => dest.Albums, opt => opt.MapFrom(src => src.Albums))
+            .ForMember(dest => dest.Artists, opt => opt.MapFrom(src => src.Artists));
     }
 }

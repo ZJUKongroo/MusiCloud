@@ -12,7 +12,7 @@ namespace MusiCloud.Migrations
 {
     [DbContext(typeof(MusiCloudDbContext))]
     [Migration("20250502043709_cover")]
-    partial class cover
+    partial class Cover
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

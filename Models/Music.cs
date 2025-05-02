@@ -8,4 +8,5 @@ public class Music : ModelBase
     public string? Title { get; set; }
     public Metadata? Metadata { get; set; }
     public ICollection<MusicArtist> MusicArtists { get; } = [];
+    public uint Track { get; set; }
 }

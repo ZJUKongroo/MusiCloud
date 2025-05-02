@@ -5,25 +5,25 @@
 namespace MusiCloud.Migrations
 {
     /// <inheritdoc />
-    public partial class Cover : Migration
+    public partial class AddTracktoMusic : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "CoverPath",
-                table: "Metadatas",
-                type: "TEXT",
+            migrationBuilder.AddColumn<uint>(
+                name: "Track",
+                table: "Musics",
+                type: "INTEGER",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: 0u);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "CoverPath",
-                table: "Metadatas");
+                name: "Track",
+                table: "Musics");
         }
     }
 }

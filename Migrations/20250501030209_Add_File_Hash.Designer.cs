@@ -12,7 +12,7 @@ namespace MusiCloud.Migrations
 {
     [DbContext(typeof(MusiCloudDbContext))]
     [Migration("20250501030209_add file hash")]
-    partial class addfilehash
+    partial class AddFileHash
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
