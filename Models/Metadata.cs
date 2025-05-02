@@ -9,4 +9,6 @@ public class Metadata : ModelBase
     public string? FileName { get; set; }
     public string? FilePath { get; set; }
     public long FileSize { get; set; }
+    public int FileHash { get; set; }
+    public bool IsExisted { get; set; } = true;
 }

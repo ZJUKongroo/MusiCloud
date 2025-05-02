@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MusiCloud.Data;
 
@@ -10,9 +11,11 @@ using MusiCloud.Data;
 namespace MusiCloud.Migrations
 {
     [DbContext(typeof(MusiCloudDbContext))]
-    partial class MusiCloudDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250501030209_add file hash")]
+    partial class addfilehash
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
@@ -57,7 +60,6 @@ namespace MusiCloud.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CoverPath")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreateTime")
@@ -144,9 +146,6 @@ namespace MusiCloud.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsExisted")
                         .HasColumnType("INTEGER");
 
                     b.Property<Guid>("MusicId")

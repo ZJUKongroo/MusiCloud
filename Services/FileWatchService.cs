@@ -2,14 +2,15 @@ namespace MusiCloud.Services
 {
     public class FileWatchService(IServiceProvider serviceProvider,
                                ILogger<FileWatchService> logger,
-                               IConfiguration configuration): IFileWatchService
+                               IConfiguration configuration) : IFileWatchService
     {
         private readonly IServiceProvider _serviceProvider = serviceProvider;
         private readonly ILogger<FileWatchService> _logger = logger;
         private FileSystemWatcher? _watcher;
         private readonly string _musicFolder = configuration["MusicFolder"] ?? Path.Combine(AppContext.BaseDirectory, "MusicFiles");
-    
-        public async Task StartAsync(CancellationToken cancellationToken){
+
+        public async Task StartAsync(CancellationToken cancellationToken)
+        {
             Directory.CreateDirectory(_musicFolder);
 
             await ScanMusicFilesAsync();
@@ -50,14 +51,61 @@ namespace MusiCloud.Services
 
             if (!fileInfo.Exists)
             {
-
                 // 文件被删除
-                await _IFileProcessService.handleFileDeleted(filePath);
+                await _IFileProcessService.HandleFileDeletedAsync(filePath);
                 return;
             }
 
-            await _IFileProcessService.handleFileCreated(filePath);
+            // Wait for file to be fully copied
+            if (!await WaitForFileCopyToComplete(filePath)) return;
+
+            await _IFileProcessService.HandleFileCreatedAsync(filePath);
             _logger.LogInformation("已更新数据库中的文件: {FilePath}", filePath);
+        }
+
+        private async Task<bool> WaitForFileCopyToComplete(string filePath)
+        {
+            const int maxAttempts = 10;
+            const int delayMs = 500;
+            long lastSize = 0;
+
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                try
+                {
+                    var fileInfo = new FileInfo(filePath);
+                    if (!fileInfo.Exists) return false;
+
+                    // Try to open the file exclusively
+                    using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        // If we can open it exclusively and the size hasn't changed, it's likely not being copied
+                        if (fileInfo.Length == lastSize || attempt > 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+                catch (IOException)
+                {
+                    // File is locked - likely still being copied
+                    _logger.LogDebug("文件正在复制中: {FilePath}", filePath);
+                }
+
+                try
+                {
+                    lastSize = new FileInfo(filePath).Length;
+                }
+                catch (Exception)
+                {
+                    // Ignore errors getting file size
+                }
+
+                await Task.Delay(delayMs);
+            }
+
+            _logger.LogWarning("文件可能正在被复制或被锁定: {FilePath}", filePath);
+            return false;
         }
 
         private async Task ProcessFileRenameAsync(string oldPath, string newPath)
@@ -65,9 +113,9 @@ namespace MusiCloud.Services
             using var scope = _serviceProvider.CreateScope();
             var _IFileProcessService = scope.ServiceProvider.GetRequiredService<IFileProcessService>();
 
-            if (!IsMusicFile(newPath)) await _IFileProcessService.handleFileDeleted(oldPath);
+            if (!IsMusicFile(newPath)) await _IFileProcessService.HandleFileDeletedAsync(oldPath);
 
-            await _IFileProcessService!.handleFileRenamed(oldPath, newPath);
+            await _IFileProcessService!.HandleFileRenamedAsync(oldPath, newPath);
         }
         private async Task ScanMusicFilesAsync()
         {
@@ -79,15 +127,16 @@ namespace MusiCloud.Services
             int count = 0;
             using var scope = _serviceProvider.CreateScope();
             var _IFileProcessService = scope.ServiceProvider.GetRequiredService<IFileProcessService>();
-            
+
+            await _IFileProcessService.InitializeAsync();
+
             foreach (var filePath in files)
             {
-                if(IsMusicFile(filePath))
-                {
-                    await _IFileProcessService.handleFile(filePath);
-                }
-                count++;  
+                await _IFileProcessService.HandleFileCreatedAsync(filePath);
+                count++;
             }
+
+            await _IFileProcessService.CleanupAsync();
 
             _logger.LogInformation("扫描完成，处理了 {count} 个文件", count);
         }

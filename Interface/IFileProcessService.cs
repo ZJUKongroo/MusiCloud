@@ -1,11 +1,11 @@
 namespace MusiCloud.Services {
     public interface IFileProcessService{
         
-        Task<bool> SaveAsync();
-        Task handleFileDeleted(string filePath);
-        Task handleFileCreated(string filePath);
-        Task handleFile(string filePath);
-        Task handleFileRenamed(string filePath, string oldPath);
-        Task handleFileModified(string filePath);
+        // Task<bool> SaveAsync();
+        Task HandleFileDeletedAsync(string filePath);
+        Task HandleFileCreatedAsync(string filePath);
+        Task HandleFileRenamedAsync(string filePath, string oldPath);
+        Task InitializeAsync();
+        Task CleanupAsync();
     }
 }

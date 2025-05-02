@@ -24,5 +24,7 @@ public class MusiCloudDbContext(DbContextOptions<MusiCloudDbContext> options) : 
             .HasQueryFilter(p => !p.IsDeleted);
         modelBuilder.Entity<AlbumArtist>()
             .HasQueryFilter(p => !p.IsDeleted);
+        modelBuilder.Entity<MusicArtist>()
+            .HasQueryFilter(p => !p.IsDeleted);
     }
 }
