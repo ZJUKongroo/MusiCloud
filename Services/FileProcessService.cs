@@ -3,6 +3,7 @@ using MusiCloud.Data;
 using MusiCloud.Models;
 using TagLib;
 using System.Security.Cryptography;
+using MusiCloud.Interface;
 
 namespace MusiCloud.Services
 {

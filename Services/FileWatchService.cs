@@ -1,3 +1,5 @@
+using MusiCloud.Interface;
+
 namespace MusiCloud.Services
 {
     public class FileWatchService(IServiceProvider serviceProvider,

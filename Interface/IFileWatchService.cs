@@ -1,4 +1,3 @@
-namespace MusiCloud.Services
-{
-    public interface IFileWatchService : IHostedService, IDisposable;
-}
+namespace MusiCloud.Interface;
+
+public interface IFileWatchService : IHostedService, IDisposable;

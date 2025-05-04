@@ -1,10 +1,9 @@
 using MusiCloud.Models;
 
-namespace MusiCloud.Services;
+namespace MusiCloud.Interface;
 
 public interface IAlbumService
 {
-    Task<IEnumerable<Album>> GetAlbumsAsync();
-    Task<Album> GetAlbumAsync(Guid albumId);
-    Task<bool> SaveAsync();
+    Task<Album?> GetAlbumAsync(Guid albumId);
+    Task<IEnumerable<Album>> GetRecommendedAlbumsAsync(int count = 10);
 }

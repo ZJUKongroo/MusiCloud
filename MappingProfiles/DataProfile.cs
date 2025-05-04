@@ -8,7 +8,9 @@ public class MusicProfile : Profile
 {
     public MusicProfile()
     {
-        CreateMap<Artist, ArtistWithAlbumDto>();
+        CreateMap<Artist, ArtistWithAlbumDto>()
+            .ForMember(dest => dest.Albums, opt => opt.MapFrom(src => 
+            src.AlbumArtists.Select(aa => aa.Album).ToList()));
 
         CreateMap<Artist, ArtistDto>();
         
