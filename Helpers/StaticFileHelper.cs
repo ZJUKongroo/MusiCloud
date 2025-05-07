@@ -7,7 +7,7 @@ namespace Microsoft.AspNetCore.Builder;
 
 public static class StaticFileHelper
 {
-    public static IApplicationBuilder AddCustomStaticFile(this IApplicationBuilder app, string path,string requestPath)
+    public static IApplicationBuilder AddCustomStaticFile(this IApplicationBuilder app, string path, string requestPath)
     {
         // Ensure directory exists
         if (!Directory.Exists(path))

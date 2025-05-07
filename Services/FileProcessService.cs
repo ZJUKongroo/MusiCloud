@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using MusiCloud.Data;
-using MusiCloud.Models;
-using TagLib;
-using System.Security.Cryptography;
 using MusiCloud.Interface;
+using MusiCloud.Models;
+using System.Security.Cryptography;
+using TagLib;
 
 namespace MusiCloud.Services
 {
@@ -19,40 +19,31 @@ namespace MusiCloud.Services
             return await _context.SaveChangesAsync() > 0;
         }
 
-        /*
-            计算文件的 SHA1 哈希值
-        */
-        private static int ComputeFileHash(string filePath)
+        // 计算文件的 SHA1 哈希值
+        private static byte[] ComputeFileHash(string filePath)
         {
             using var sha1 = SHA1.Create();
             using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var hashBytes = sha1.ComputeHash(fileStream);
-            return BitConverter.ToInt32(hashBytes, 0);
+            return sha1.ComputeHash(fileStream);
         }
 
-        /*
-            根据 MIME 类型获取文件扩展名
-        */
-        private static string GetExtByMineType(string mimeType)
-        {
-            return mimeType.ToLowerInvariant() switch
+        // 根据 MIME 类型获取文件扩展名
+        private static string GetExtByMineType(string mimeType) =>
+            mimeType.ToLowerInvariant() switch
             {
-            "image/jpeg" => ".jpg",
-            "image/png" => ".png",
-            "image/gif" => ".gif",
-            "image/bmp" => ".bmp",
-            "image/tiff" => ".tiff",
-            "image/webp" => ".webp",
-            "image/svg+xml" => ".svg",
-            _ => ".jpg"  // Default to jpg for unknown image types
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/gif" => ".gif",
+                "image/bmp" => ".bmp",
+                "image/tiff" => ".tiff",
+                "image/webp" => ".webp",
+                "image/svg+xml" => ".svg",
+                _ => ".jpg"
             };
-        }
 
-        /*
-            保存封面图片到缓存目录 (可配置)
-            封面图片的文件名为 GUID + 扩展名
-            若封面图片不存在，则返回空字符串
-        */
+        // 保存封面图片到缓存目录 (可配置)
+        // 封面图片的文件名为 GUID + 扩展名
+        // 若封面图片不存在，则返回空字符串
         private async Task<string> SaveCoverImage(Tag tag)
         {
             var cover = tag.Pictures.FirstOrDefault();
@@ -66,43 +57,48 @@ namespace MusiCloud.Services
             {
                 Directory.CreateDirectory(_coverCacheFolder);
             }
+            var memoryStream = new MemoryStream(cover.Data.Data.Length);
+            await memoryStream.WriteAsync(cover.Data.Data.AsMemory(cover.Data.Data.Length));
+
             using var fileStream = new FileStream(coverFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
             _logger.LogInformation("保存封面图片到 {coverFilePath}", coverFilePath);
             await fileStream.WriteAsync(cover.Data.Data.AsMemory(0, cover.Data.Data.Length));
             return coverFileName;
         }
 
-        /*
-            删除封面图片
-        */
-        private Task DeleteCoverImage(string coverName)
+        // 删除封面图片
+        private bool DeleteCoverImage(string coverName)
         {
-            if (Path.Exists(Path.Combine(_coverCacheFolder, coverName)))
+            try
             {
-                _logger.LogInformation("删除旧封面图片 {oldName}", coverName);
-                System.IO.File.Delete(Path.Combine(_coverCacheFolder, coverName));
+                if (Path.Exists(Path.Combine(_coverCacheFolder, coverName)))
+                {
+                    _logger.LogInformation("删除旧封面图片 {oldName}", coverName);
+                    System.IO.File.Delete(Path.Combine(_coverCacheFolder, coverName));
+                }
+                return true;
             }
-            return Task.CompletedTask;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "删除封面图片 {oldName} 失败", coverName);
+                return false;
+            }
         }
 
-        /*
-            修改封面图片
-            = 先删除旧封面图片 + 保存新封面图片
-        */
+        // 修改封面图片
+        // = 先删除旧封面图片 + 保存新封面图片
         private async Task<string> ChangeCoverImage(string oldName, Tag tag)
         {
-            await DeleteCoverImage(oldName);
+            DeleteCoverImage(oldName);
             return await SaveCoverImage(tag);
         }
 
-        /*
-            处理元数据
-            -  如果文件不存在，则创建新的元数据
-            -  如果文件存在，则更新元数据
-        */
+        // 处理元数据
+        // -  如果文件不存在，则创建新的元数据
+        // -  如果文件存在，则更新元数据
         private async Task<Metadata?> ProcessMetadata(string filePath, FileInfo fileInfo, TagLib.File tagFile)
         {
-            var metadata = await _context.Metadatas!.FirstOrDefaultAsync(a => a.FilePath == filePath && !a.IsDeleted);
+            var metadata = await _context.Metadatas!.FirstOrDefaultAsync(a => a.FilePath == filePath);
             var fileHash = ComputeFileHash(filePath);
             if (metadata == null)
             {
@@ -134,11 +130,9 @@ namespace MusiCloud.Services
             return null;
         }
 
-        /*
-            处理歌手
-            -  如果歌手已存在，则返回已存在的艺术家
-            -  如果歌手不存在，则创建新的艺术家
-        */
+        // 处理歌手
+        // -  如果歌手已存在，则返回已存在的艺术家
+        // -  如果歌手不存在，则创建新的艺术家
         private async Task<List<Artist>> ProcessArtist(Tag tag)
         {
             // 避免首尾的空格导致重复创建
@@ -147,7 +141,7 @@ namespace MusiCloud.Services
                 : ["Unknown Artist"];
 
             var existingArtists = await _context.Artists!
-                .Where(a => performerNames.Contains(a.Name) && !a.IsDeleted)
+                .Where(a => performerNames.Contains(a.Name))
                 .ToArrayAsync();
 
             var artists = new List<Artist>();
@@ -168,19 +162,17 @@ namespace MusiCloud.Services
             return artists;
         }
 
-        /*
-            处理专辑
-            -  如果专辑已存在，则返回已存在的专辑
-            -  如果专辑不存在，则创建新的专辑
-        */
+        // 处理专辑
+        // -  如果专辑已存在，则返回已存在的专辑
+        // -  如果专辑不存在，则创建新的专辑
         private async Task<Album> ProcessAlbum(Tag tag, List<Artist> artists)
         {
             string albumTitle = tag.Album ?? "Unknown Album";
 
             var albums = await _context.Albums!
-                .Include(a => a.AlbumArtists.Where(aa => !aa.IsDeleted))
+                .Include(a => a.AlbumArtists)
                 .ThenInclude(aa => aa.Artist)
-                .Where(a => a.Title == albumTitle && !a.IsDeleted)
+                .Where(a => a.Title == albumTitle)
                 .ToArrayAsync();
 
             if (albums.Length > 0)
@@ -227,18 +219,16 @@ namespace MusiCloud.Services
             return album;
         }
 
-        /*
-            处理音乐
-            -  如果音乐已存在，则更新音乐的元数据
-            -  如果音乐不存在，则创建新的音乐
-        */
-        private async Task ProcessMusic(TagLib.File tagFile, FileInfo fileInfo, Metadata metadata, Album album, List<Artist> artists)
+        // 处理音乐
+        // -  如果音乐已存在，则更新音乐的元数据
+        // -  如果音乐不存在，则创建新的音乐
+        private async Task ProcessMusic(TagLib.File tagFile, Metadata metadata, Album album, List<Artist> artists)
         {
             var musics = await _context.Musics!
                 .Include(m => m.Album)
-                .Include(m => m.MusicArtists.Where(ma => !ma.IsDeleted))
+                .Include(m => m.MusicArtists)
                 .ThenInclude(ma => ma.Artist)
-                .Where(m => m.Title == tagFile.Tag.Title && m.AlbumId == album.Id && !m.IsDeleted)
+                .Where(m => m.Title == tagFile.Tag.Title && m.AlbumId == album.Id)
                 .ToArrayAsync();
 
             if (musics.Length > 0)
@@ -296,22 +286,20 @@ namespace MusiCloud.Services
             }
         }
 
-        /*
-            清理孤立的艺术家
-            如果艺术家没有任何音乐，则标记为删除
-        */
+        // 清理孤立的艺术家
+        // 如果艺术家没有任何音乐，则标记为删除
         private async Task CleanupOrphanedArtists(Guid[] artistIds)
         {
             foreach (var artistId in artistIds)
             {
                 var hasActiveMusic = await _context.MusicArtists!
-                    .AnyAsync(ma => ma.ArtistId == artistId && !ma.IsDeleted);
+                    .AnyAsync(ma => ma.ArtistId == artistId);
 
                 if (!hasActiveMusic)
                 {
                     var artist = await _context.Artists!
                         .Include(a => a.AlbumArtists)
-                        .FirstOrDefaultAsync(a => a.Id == artistId && !a.IsDeleted);
+                        .FirstOrDefaultAsync(a => a.Id == artistId);
 
                     if (artist != null)
                     {
@@ -319,7 +307,7 @@ namespace MusiCloud.Services
                         artist.IsDeleted = true;
                         artist.DeleteTime = DateTime.UtcNow;
 
-                        foreach (var albumArtist in artist.AlbumArtists.Where(aa => !aa.IsDeleted))
+                        foreach (var albumArtist in artist.AlbumArtists)
                         {
                             albumArtist.IsDeleted = true;
                             albumArtist.DeleteTime = DateTime.UtcNow;
@@ -329,20 +317,18 @@ namespace MusiCloud.Services
             }
         }
 
-        /*
-            清理孤立的专辑
-            如果专辑没有任何音乐，则标记为删除
-        */
+        // 清理孤立的专辑
+        // 如果专辑没有任何音乐，则标记为删除
         private async Task CleanupOrphanedAlbum(Guid albumId)
         {
             var hasActiveMusic = await _context.Musics!
-                .AnyAsync(m => m.AlbumId == albumId && !m.IsDeleted);
+                .AnyAsync(m => m.AlbumId == albumId);
 
             if (!hasActiveMusic)
             {
                 var album = await _context.Albums!
                     .Include(a => a.AlbumArtists)
-                    .FirstOrDefaultAsync(a => a.Id == albumId && !a.IsDeleted);
+                    .FirstOrDefaultAsync(a => a.Id == albumId);
 
                 if (album != null)
                 {
@@ -352,11 +338,11 @@ namespace MusiCloud.Services
 
                     if (!string.IsNullOrEmpty(album.CoverPath))
                     {
-                        await DeleteCoverImage(album.CoverPath);
+                        DeleteCoverImage(album.CoverPath);
                     }
 
                     // 标记相关的 AlbumArtist 记录为删除
-                    foreach (var albumArtist in album.AlbumArtists.Where(aa => !aa.IsDeleted))
+                    foreach (var albumArtist in album.AlbumArtists)
                     {
                         albumArtist.IsDeleted = true;
                         albumArtist.DeleteTime = DateTime.UtcNow;
@@ -365,11 +351,9 @@ namespace MusiCloud.Services
             }
         }
 
-        /*
-            传入要删除的元数据的引用
-            元数据标记为删除
-            之后删除相关的音乐、艺术家和专辑
-        */
+        // 传入要删除的元数据的引用
+        // 元数据标记为删除
+        // 之后删除相关的音乐、艺术家和专辑
         private async Task<bool> CleanupOrphanedData(Metadata? metadata)
         {
             if (metadata == null) return false;
@@ -390,7 +374,7 @@ namespace MusiCloud.Services
             music.DeleteTime = DateTime.UtcNow;
             _context.Musics!.Update(music);
 
-            foreach (var musicArtist in music.MusicArtists.Where(ma => !ma.IsDeleted))
+            foreach (var musicArtist in music.MusicArtists)
             {
                 musicArtist.IsDeleted = true;
                 musicArtist.DeleteTime = DateTime.UtcNow;
@@ -406,9 +390,7 @@ namespace MusiCloud.Services
             return true;
         }
 
-        /*
-            处理文件删除事件
-        */
+        // 处理文件删除事件
         public async Task HandleFileDeletedAsync(string filePath)
         {
             var metadata = await _context.Metadatas!
@@ -418,20 +400,20 @@ namespace MusiCloud.Services
                 .Include(m => m.Music)
                     .ThenInclude(m => m!.Album)
                         .ThenInclude(a => a.AlbumArtists)
-                .FirstOrDefaultAsync(m => m.FilePath == filePath && !m.IsDeleted);
+                .FirstOrDefaultAsync(m => m.FilePath == filePath);
             bool res = await CleanupOrphanedData(metadata);
             await SaveAsync();
-            if(res){
+            if (res)
+            {
                 _logger.LogInformation("文件 {filePath} 已删除，相关数据已清理", filePath);
             }
-            else{
+            else
+            {
                 _logger.LogInformation("文件 {filePath} 已删除，但未找到相关数据", filePath);
             }
         }
 
-        /*
-            处理文件创建事件
-        */
+        // 处理文件创建事件
         public async Task HandleFileCreatedAsync(string filePath)
         {
             try
@@ -449,7 +431,7 @@ namespace MusiCloud.Services
 
                 var artists = await ProcessArtist(tagFile.Tag);
                 var album = await ProcessAlbum(tagFile.Tag, artists);
-                await ProcessMusic(tagFile, fileInfo, metadata, album, artists);
+                await ProcessMusic(tagFile, metadata, album, artists);
                 await SaveAsync();
 
                 _logger.LogInformation("文件 {filePath} 处理完成", filePath);
@@ -460,12 +442,10 @@ namespace MusiCloud.Services
             }
         }
 
-        /*
-            处理文件重命名事件
-        */
+        // 处理文件重命名事件
         public async Task HandleFileRenamedAsync(string oldPath, string newPath)
         {
-            var metadata = _context.Metadatas!.FirstOrDefault(m => m.FilePath == oldPath && !m.IsDeleted);
+            var metadata = _context.Metadatas!.FirstOrDefault(m => m.FilePath == oldPath);
             if (metadata != null)
             {
                 metadata.FilePath = newPath;
@@ -482,14 +462,11 @@ namespace MusiCloud.Services
             }
         }
 
-        /*
-            先标记所有元数据为不存在
-            在扫盘的过程中，如果发现文件存在，则将 IsExisted 设置为 true
-        */
+        // 先标记所有元数据为不存在
+        // 在扫盘的过程中，如果发现文件存在，则将 IsExisted 设置为 true
         public async Task InitializeAsync()
         {
             var metadatas = await _context.Metadatas!
-                .Where(m=>!m.IsDeleted)
                 .ToListAsync();
 
             foreach (var metadata in metadatas)
@@ -499,9 +476,7 @@ namespace MusiCloud.Services
             await SaveAsync();
         }
 
-        /*
-            清理扫盘后 IsExisted 仍为 false 的元数据
-        */
+        // 清理扫盘后 IsExisted 仍为 false 的元数据
         public async Task CleanupAsync()
         {
             var metadatas = await _context.Metadatas!
@@ -511,16 +486,17 @@ namespace MusiCloud.Services
                 .Include(m => m.Music)
                     .ThenInclude(m => m!.Album)
                         .ThenInclude(a => a.AlbumArtists)
-                .Where(m => !m.IsExisted && !m.IsDeleted)
+                .Where(m => !m.IsExisted)
                 .ToListAsync();
 
             _logger.LogInformation("开始清理无效的元数据...");
             int count = 0;
-            foreach (var metadata in metadatas){
+            foreach (var metadata in metadatas)
+            {
                 bool res = await CleanupOrphanedData(metadata);
                 count++;
             }
-            
+
             await SaveAsync();
             _logger.LogInformation("清理完成，处理了 {count} 个文件", count);
         }

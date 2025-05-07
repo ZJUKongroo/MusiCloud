@@ -18,9 +18,7 @@ public class AlbumController(IAlbumService albumService, IMapper mapper, ILogger
     {
         try
         {
-            var album = await _albumService.GetAlbumAsync(id);
-            if (album == null)
-                return NotFound();
+            var album = await _albumService.GetAlbumAsync(id) ?? throw new ArgumentNullException(nameof(id), "Album not found");
 
             var albumDto = _mapper.Map<AlbumWithMusicsArtistsDto>(album);
             return Ok(albumDto);

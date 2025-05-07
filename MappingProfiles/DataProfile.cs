@@ -9,29 +9,31 @@ public class MusicProfile : Profile
     public MusicProfile()
     {
         CreateMap<Artist, ArtistWithAlbumDto>()
-            .ForMember(dest => dest.Albums, opt => opt.MapFrom(src => 
+            .ForMember(dest => dest.Albums, opt => opt.MapFrom(src =>
             src.AlbumArtists.Select(aa => aa.Album).ToList()));
 
         CreateMap<Artist, ArtistDto>();
-        
+
         CreateMap<Metadata, MetadataDto>();
 
         CreateMap<Album, AlbumDto>();
-        
+
         CreateMap<Album, AlbumWithMusicsArtistsDto>()
-            .ForMember(dest => dest.Artists, opt => opt.MapFrom(src => 
+            .ForMember(dest => dest.Artists, opt => opt.MapFrom(src =>
                 src.AlbumArtists.Select(aa => aa.Artist)))
-            .ForMember(dest=>dest.Musics, opt => opt.MapFrom(src => 
+            .ForMember(dest => dest.Musics, opt => opt.MapFrom(src =>
                 src.Musics.ToList()));
 
         CreateMap<Music, MusicDto>();
 
         CreateMap<Music, MusicWithAlbumArtistDto>()
-            .ForMember(dest => dest.Artists, opt => opt.MapFrom(src => 
-                src.MusicArtists.Select(ma => ma.Artist)));
+            .ForMember(dest => dest.Artists, opt => opt.MapFrom(src =>
+                src.MusicArtists.Select(ma => ma.Artist)))
+            .ForMember(dest => dest.Album, opt => opt.MapFrom(src =>
+                src.Album));
 
         CreateMap<Music, MusicWithArtistDto>()
-            .ForMember(dest => dest.Artists, opt => opt.MapFrom(src => 
+            .ForMember(dest => dest.Artists, opt => opt.MapFrom(src =>
                 src.MusicArtists.Select(ma => ma.Artist)));
 
         CreateMap<SearchResult, SearchResultDto>()

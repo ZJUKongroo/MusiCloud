@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using MusiCloud.Data;
-using MusiCloud.Services;
-using MusiCloud.Interface;
-using Scalar.AspNetCore;
 using Microsoft.Extensions.FileProviders;
+using MusiCloud.Data;
+using MusiCloud.Interface;
+using MusiCloud.Services;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 

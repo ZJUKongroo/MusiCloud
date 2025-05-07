@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MusiCloud.Data;
-using MusiCloud.Models;
 using MusiCloud.Interface;
+using MusiCloud.Models;
 
 namespace MusiCloud.Services;
 
@@ -16,12 +16,9 @@ public class ArtistService(MusiCloudDbContext context) : IArtistService
             throw new ArgumentNullException(nameof(artistId));
 
         return await _context.Artists!
-            .Where(a => a.Id == artistId && !a.IsDeleted)
-            .Include(a => a.AlbumArtists.Where(aa => !aa.IsDeleted))
+            .Where(a => a.Id == artistId)
+            .Include(a => a.AlbumArtists)
                 .ThenInclude(aa => aa.Album)
-            // .Include(a => a.MusicArtists.Where(ma => !ma.IsDeleted))
-            //     .ThenInclude(ma => ma.Music)
-            //         .ThenInclude(m => m!.Metadata)
             .AsSplitQuery()
             .FirstOrDefaultAsync();
     }

@@ -1,6 +1,6 @@
 namespace MusiCloud.Dtos
 {
-    public class ArtistWithAlbumDto:ArtistDto
+    public class ArtistWithAlbumDto : ArtistDto
     {
         public List<AlbumDto> Albums { get; set; } = [];
     }

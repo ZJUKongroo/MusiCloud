@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MusiCloud.Data;
-using MusiCloud.Models;
 using MusiCloud.Interface;
+using MusiCloud.Models;
 
 namespace MusiCloud.Services;
 
@@ -16,15 +16,14 @@ public class AlbumService(MusiCloudDbContext context) : IAlbumService
             throw new ArgumentNullException(nameof(albumId));
 
         return await _context.Albums!
-            .Where(a => a.Id == albumId && !a.IsDeleted)
-            .Include(a => a.AlbumArtists.Where(aa => !aa.IsDeleted))
+            .Where(a => a.Id == albumId)
+            .Include(a => a.AlbumArtists)
                 .ThenInclude(aa => aa.Artist)
-            .Include(a => a.Musics.Where(m => !m.IsDeleted))
+            .Include(a => a.Musics)
                 .ThenInclude(m => m.Metadata)
-            .Include(a => a.Musics.Where(m => !m.IsDeleted))
-                .ThenInclude(m => m.MusicArtists.Where(ma => !ma.IsDeleted))
+            .Include(a => a.Musics)
+                .ThenInclude(m => m.MusicArtists)
                 .ThenInclude(ma => ma.Artist)
-            .AsSplitQuery()
             .FirstOrDefaultAsync();
     }
 
@@ -32,7 +31,6 @@ public class AlbumService(MusiCloudDbContext context) : IAlbumService
     public async Task<IEnumerable<Album>> GetRecommendedAlbumsAsync(int count = 10)
     {
         return await _context.Albums!
-            .Where(a => !a.IsDeleted)
             .OrderBy(_ => EF.Functions.Random()) // 随机排序
             .Take(count)
             .ToListAsync();

@@ -8,5 +8,5 @@ public class Album : ModelBase
     public string[] Genre { get; set; } = [];
     public string CoverPath { get; set; } = "";
     public ICollection<Music> Musics { get; } = [];
-    public List<AlbumArtist> AlbumArtists { get;  } = [];
+    public List<AlbumArtist> AlbumArtists { get; } = [];
 }

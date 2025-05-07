@@ -18,9 +18,7 @@ public class ArtistController(IArtistService artistService, IMapper mapper, ILog
     {
         try
         {
-            var artist = await _artistService.GetArtistAsync(id);
-            if (artist == null)
-                return NotFound();
+            var artist = await _artistService.GetArtistAsync(id) ?? throw new ArgumentNullException(nameof(id), "Artist not found");
 
             var artistDto = _mapper.Map<ArtistWithAlbumDto>(artist);
             return Ok(artistDto);

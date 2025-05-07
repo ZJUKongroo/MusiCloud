@@ -24,7 +24,8 @@ public class SearchController(ISearchService searchService, IMapper mapper, ILog
             var musics = await _searchService.SearchMusicAsync(query);
             var albums = await _searchService.SearchAlbumAsync(query);
             var artists = await _searchService.SearchArtistAsync(query);
-            var result = _mapper.Map<SearchResultDto>(new SearchResult {
+            var result = _mapper.Map<SearchResultDto>(new SearchResult
+            {
                 Musics = musics,
                 Albums = albums,
                 Artists = artists

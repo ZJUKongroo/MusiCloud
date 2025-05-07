@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MusiCloud.Data;
-using MusiCloud.Models;
 using MusiCloud.Interface;
+using MusiCloud.Models;
 
 namespace MusiCloud.Services;
 
@@ -16,7 +16,7 @@ public class MusicService(MusiCloudDbContext context) : IMusicService
             throw new ArgumentNullException(nameof(musicId));
 
         return await _context.Musics!
-            .Where(m => m.Id == musicId && !m.IsDeleted)
+            .Where(m => m.Id == musicId)
             .Include(m => m.Metadata)
             .Include(m => m.Album)
                 .ThenInclude(a => a.AlbumArtists)
@@ -31,13 +31,12 @@ public class MusicService(MusiCloudDbContext context) : IMusicService
     public async Task<IEnumerable<Music>> GetRecommendedMusicAsync(int count = 10)
     {
         return await _context.Musics!
-            .Where(m => !m.IsDeleted)
             .Include(m => m.Metadata)
             .Include(m => m.Album)
-            .Include(m => m.MusicArtists.Where(ma => !ma.IsDeleted))
+            .Include(m => m.MusicArtists)
             .ThenInclude(ma => ma.Artist)
             .AsSplitQuery()
-            .OrderBy(_ => EF.Functions.Random()) 
+            .OrderBy(_ => EF.Functions.Random())
             .Take(count)
             .ToListAsync();
     }
@@ -46,10 +45,9 @@ public class MusicService(MusiCloudDbContext context) : IMusicService
     public async Task<IEnumerable<Music>> GetLatestMusicAsync(int count = 10)
     {
         return await _context.Musics!
-            .Where(m => !m.IsDeleted)
             .Include(m => m.Metadata)
             .Include(m => m.Album)
-            .Include(m => m.MusicArtists.Where(ma => !ma.IsDeleted))
+            .Include(m => m.MusicArtists)
                 .ThenInclude(ma => ma.Artist)
             .AsSplitQuery()
             .OrderByDescending(m => m.UpdateTime) // 按更新时间降序排序

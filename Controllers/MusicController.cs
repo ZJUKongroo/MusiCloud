@@ -18,9 +18,7 @@ public class MusicController(IMusicService musicService, IMapper mapper, ILogger
     {
         try
         {
-            var music = await _musicService.GetMusicAsync(id);
-            if (music == null)
-                return NotFound();
+            var music = await _musicService.GetMusicAsync(id) ?? throw new ArgumentNullException(nameof(id), "Music not found");
 
             var musicDto = _mapper.Map<MusicWithAlbumArtistDto>(music);
             return Ok(musicDto);
@@ -34,7 +32,7 @@ public class MusicController(IMusicService musicService, IMapper mapper, ILogger
             _logger.LogError(ex, "获取音乐详情时出错 ID: {Id}", id);
             return StatusCode(500, "获取音乐详情时发生内部错误");
         }
-    } 
+    }
 
     [HttpGet("recommended")]
     public async Task<ActionResult<IEnumerable<MusicWithAlbumArtistDto>>> GetRecommendedMusic([FromQuery] int count = 10)
