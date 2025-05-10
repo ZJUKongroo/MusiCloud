@@ -111,22 +111,23 @@ namespace MusiCloud.Services
                     FileHash = fileHash,
                     UpdateTime = DateTime.UtcNow,
                 };
-                _context.Metadatas!.Add(metadata);
                 return metadata;
             }
             // 文件被修改
-            else if (metadata.FileHash != fileHash)
+            else if (!metadata.FileHash.SequenceEqual(fileHash))
             {
+                _logger.LogInformation("文件 {filePath} 的元数据已更新", filePath);
                 metadata.Duration = TimeOnly.FromTimeSpan(tagFile.Properties.Duration);
                 metadata.FileName = fileInfo.Name;
                 metadata.FilePath = filePath;
                 metadata.FileSize = fileInfo.Length;
                 metadata.FileHash = fileHash;
                 metadata.UpdateTime = DateTime.UtcNow;
-                _context.Metadatas!.Update(metadata);
+                metadata.IsExisted = true;
                 return metadata;
             }
             metadata.IsExisted = true;
+            _context.Metadatas!.Update(metadata);
             return null;
         }
 
@@ -393,7 +394,9 @@ namespace MusiCloud.Services
         // 处理文件删除事件
         public async Task HandleFileDeletedAsync(string filePath)
         {
-            var metadata = await _context.Metadatas!
+            try
+            {
+                var metadata = await _context.Metadatas!
                 .Include(m => m.Music)
                     .ThenInclude(m => m!.MusicArtists)
                         .ThenInclude(ma => ma.Artist)
@@ -401,15 +404,20 @@ namespace MusiCloud.Services
                     .ThenInclude(m => m!.Album)
                         .ThenInclude(a => a.AlbumArtists)
                 .FirstOrDefaultAsync(m => m.FilePath == filePath);
-            bool res = await CleanupOrphanedData(metadata);
-            await SaveAsync();
-            if (res)
-            {
-                _logger.LogInformation("文件 {filePath} 已删除，相关数据已清理", filePath);
+                bool res = await CleanupOrphanedData(metadata);
+                await SaveAsync();
+                if (res)
+                {
+                    _logger.LogInformation("文件 {filePath} 已删除，相关数据已清理", filePath);
+                }
+                else
+                {
+                    _logger.LogInformation("文件 {filePath} 已删除，但未找到相关数据", filePath);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogInformation("文件 {filePath} 已删除，但未找到相关数据", filePath);
+                _logger.LogError(ex, "处理文件 {filePath} 删除事件时发生错误", filePath);
             }
         }
 

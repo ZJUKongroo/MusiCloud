@@ -24,10 +24,14 @@ builder.Services.AddScoped<IMusicService, MusicService>();
 builder.Services.AddScoped<IAlbumService, AlbumService>();
 builder.Services.AddScoped<IArtistService, ArtistService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 
 builder.Services.AddScoped<IFileProcessService, FileProcessService>();
 
-builder.Services.AddHostedService<FileWatchService>();
+// builder.Services.AddHostedService<FileWatchService>();
+builder.Services.AddSingleton<FileWatchService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<FileWatchService>());
+builder.Services.AddSingleton<IFileWatchService>(sp => sp.GetRequiredService<FileWatchService>());
 
 // Inject OpenApi service
 builder.Services.AddOpenApi();

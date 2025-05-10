@@ -1,4 +1,5 @@
 using MusiCloud.Interface;
+using System.Collections.Concurrent;
 
 namespace MusiCloud.Services
 {
@@ -10,6 +11,7 @@ namespace MusiCloud.Services
         private readonly ILogger<FileWatchService> _logger = logger;
         private FileSystemWatcher? _watcher;
         private readonly string _musicFolder = configuration["MusicFolder"] ?? Path.Combine(AppContext.BaseDirectory, "MusicFiles");
+        private readonly ConcurrentDictionary<string, bool> _processingFiles = new();
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
@@ -33,36 +35,38 @@ namespace MusiCloud.Services
             _logger.LogInformation("已开始监控音乐文件夹: {Folder}", _musicFolder);
         }
 
+        private bool IsFileBeingProcessed(string filePath)
+        {
+            if (_processingFiles.TryAdd(filePath, true))
+            {
+                _logger.LogDebug("开始处理文件: {FilePath}", filePath);
+                return false;
+            }
+            return true;
+        }
+
+        private void MarkFileProcessed(string filePath)
+        {
+            if(_processingFiles.TryRemove(filePath, out _)){
+                _logger.LogDebug("文件处理完成: {FilePath}", filePath);
+            }
+        }
+
+        private bool IsMusicFile(string filePath)
+        {
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            return extension is ".mp3" or ".flac" or ".wav" or ".ogg" or ".aac" or ".m4a";
+        }
+
         private async void OnFileChanged(object sender, FileSystemEventArgs e)
         {
+            
             await ProcessFileChangeAsync(e.FullPath);
         }
 
         private async void OnFileRenamed(object sender, RenamedEventArgs e)
         {
             await ProcessFileRenameAsync(e.OldFullPath, e.FullPath);
-        }
-
-        private async Task ProcessFileChangeAsync(string filePath)
-        {
-            if (!IsMusicFile(filePath)) return;
-
-            var fileInfo = new FileInfo(filePath);
-            using var scope = _serviceProvider.CreateScope();
-            var _IFileProcessService = scope.ServiceProvider.GetRequiredService<IFileProcessService>();
-
-            if (!fileInfo.Exists)
-            {
-                // 文件被删除
-                await _IFileProcessService.HandleFileDeletedAsync(filePath);
-                return;
-            }
-
-            // Wait for file to be fully copied
-            if (!await WaitForFileCopyToComplete(filePath)) return;
-
-            await _IFileProcessService.HandleFileCreatedAsync(filePath);
-            _logger.LogInformation("已更新数据库中的文件: {FilePath}", filePath);
         }
 
         private async Task<bool> WaitForFileCopyToComplete(string filePath)
@@ -110,16 +114,41 @@ namespace MusiCloud.Services
             return false;
         }
 
+        private async Task ProcessFileChangeAsync(string filePath)
+        {
+            if (!IsMusicFile(filePath)) return;
+            if (IsFileBeingProcessed(filePath)) return;
+            var fileInfo = new FileInfo(filePath);
+            using var scope = _serviceProvider.CreateScope();
+            var _IFileProcessService = scope.ServiceProvider.GetRequiredService<IFileProcessService>();
+
+            if (!fileInfo.Exists)
+            {
+                // 文件被删除
+                await _IFileProcessService.HandleFileDeletedAsync(filePath);
+                return;
+            }
+
+            if (!await WaitForFileCopyToComplete(filePath)) return;
+
+            await _IFileProcessService.HandleFileCreatedAsync(filePath);
+            MarkFileProcessed(filePath);
+            _logger.LogInformation("已更新数据库中的文件: {FilePath}", filePath);
+        }
+
         private async Task ProcessFileRenameAsync(string oldPath, string newPath)
         {
+            if (IsFileBeingProcessed(oldPath)) return;
             using var scope = _serviceProvider.CreateScope();
             var _IFileProcessService = scope.ServiceProvider.GetRequiredService<IFileProcessService>();
 
             if (!IsMusicFile(newPath)) await _IFileProcessService.HandleFileDeletedAsync(oldPath);
 
+            MarkFileProcessed(oldPath);
             await _IFileProcessService!.HandleFileRenamedAsync(oldPath, newPath);
         }
-        private async Task ScanMusicFilesAsync()
+        
+        public async Task ScanMusicFilesAsync()
         {
             _logger.LogInformation("开始扫描音乐文件...");
 
@@ -141,12 +170,6 @@ namespace MusiCloud.Services
             await _IFileProcessService.CleanupAsync();
 
             _logger.LogInformation("扫描完成，处理了 {count} 个文件", count);
-        }
-
-        private bool IsMusicFile(string filePath)
-        {
-            var extension = Path.GetExtension(filePath).ToLowerInvariant();
-            return extension is ".mp3" or ".flac" or ".wav" or ".ogg" or ".aac" or ".m4a";
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
