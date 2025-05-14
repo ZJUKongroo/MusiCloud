@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MusiCloud.Data;
 
@@ -10,9 +11,11 @@ using MusiCloud.Data;
 namespace MusiCloud.Migrations
 {
     [DbContext(typeof(MusiCloudDbContext))]
-    partial class MusiCloudDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250502152621_Add Track to Music")]
+    partial class AddTracktoMusic
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
@@ -131,9 +134,8 @@ namespace MusiCloud.Migrations
                     b.Property<TimeOnly>("Duration")
                         .HasColumnType("TEXT");
 
-                    b.Property<byte[]>("FileHash")
-                        .IsRequired()
-                        .HasColumnType("BLOB");
+                    b.Property<int>("FileHash")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("FileName")
                         .HasColumnType("TEXT");

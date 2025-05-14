@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MusiCloud.Data;
+using MusiCloud.Interface;
 using MusiCloud.Models;
 
 namespace MusiCloud.Services;
@@ -8,26 +9,30 @@ public class AlbumService(MusiCloudDbContext context) : IAlbumService
 {
     private readonly MusiCloudDbContext _context = context;
 
-    public async Task<IEnumerable<Album>> GetAlbumsAsync()
-    {
-        return await _context.Albums!
-            .OrderBy(x => x.UpdateTime)
-            .ToListAsync();
-    }
-
-    public async Task<Album> GetAlbumAsync(Guid albumId)
+    // 获取专辑详情
+    public async Task<Album?> GetAlbumAsync(Guid albumId)
     {
         if (albumId == Guid.Empty)
             throw new ArgumentNullException(nameof(albumId));
 
         return await _context.Albums!
-            .Where(x => x.Id == albumId)
-            .OrderBy(x => x.UpdateTime)
-            .FirstOrDefaultAsync() ?? throw new NullReferenceException(nameof(albumId));
+            .Where(a => a.Id == albumId)
+            .Include(a => a.AlbumArtists)
+                .ThenInclude(aa => aa.Artist)
+            .Include(a => a.Musics)
+                .ThenInclude(m => m.Metadata)
+            .Include(a => a.Musics)
+                .ThenInclude(m => m.MusicArtists)
+                .ThenInclude(ma => ma.Artist)
+            .FirstOrDefaultAsync();
     }
 
-    public async Task<bool> SaveAsync()
+    // 获取推荐专辑
+    public async Task<IEnumerable<Album>> GetRecommendedAlbumsAsync(int count = 10)
     {
-        return await _context.SaveChangesAsync() > 0;
+        return await _context.Albums!
+            .OrderBy(_ => EF.Functions.Random()) // 随机排序
+            .Take(count)
+            .ToListAsync();
     }
 }
